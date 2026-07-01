@@ -10,6 +10,23 @@ Composes `tf-atom-eventbridge-schedule-aws` + `tf-atom-iam-role-aws` +
 scheduler-assumable role and grants it `lambda:InvokeFunction` (or `target_action`)
 on `target_arn`; set `create_role = false` and pass `role_arn` to reuse a role.
 
+## Features
+
+- Creates an EventBridge **Scheduler** schedule (`aws_scheduler_schedule`) driven by a
+  `rate(...)`, `cron(...)`, or `at(...)` `schedule_expression`.
+- Optionally builds a scheduler-assumable IAM invocation role (`create_role = true`,
+  default) scoped to the current account via `aws:SourceAccount`, with an inline policy
+  granting `target_action` (default `lambda:InvokeFunction`) on `target_arn`. Set
+  `create_role = false` and pass `role_arn` to reuse an existing role.
+- Supports a flexible time window (`flexible_time_window_mode` + `flexible_time_window_minutes`)
+  to spread invocations, plus an explicit IANA `schedule_expression_timezone`.
+- Bounds delivery with `maximum_retry_attempts`, `maximum_event_age_in_seconds`, and an
+  optional `dead_letter_arn` SQS target for undeliverable events.
+- Optional `start_date` / `end_date` activation window, static `target_input` payload,
+  customer-managed `kms_key_arn` encryption, and schedule `group_name`.
+- Toggle the whole molecule on/off with `enabled` (via the tf-label `context`); when
+  disabled it creates no resources.
+
 ## Usage
 
 ```hcl
@@ -110,3 +127,13 @@ module "notify_deliver_schedule" {
 | <a name="output_schedule_arn"></a> [schedule\_arn](#output\_schedule\_arn) | ARN of the EventBridge schedule |
 | <a name="output_schedule_name"></a> [schedule\_name](#output\_schedule\_name) | Name of the EventBridge schedule |
 <!-- END_TF_DOCS -->
+
+## Tests
+
+Plan-only unit tests (mock AWS provider — no real AWS calls) live under `tests/unit/`.
+
+```bash
+terraform init -backend=false && terraform test -test-directory=tests/unit
+# or, via the Makefile:
+make test-unit
+```
